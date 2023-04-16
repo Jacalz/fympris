@@ -5,6 +5,6 @@ Metadata such a the artist(s), the title and the cover art will be displayed ins
 
 **WARNING: This software is in an early stage. The code is quite ugly and might crash in some cases.**
 
-![image](https://user-images.githubusercontent.com/25466657/232295481-88a9ea02-b516-4aa0-8ed4-83930eede567.png)
+![image](https://user-images.githubusercontent.com/25466657/232321258-13b605fa-5d5a-4376-849a-48ffbdeb9584.png)
 
 **Disclaimer:** The album artwork in the image above is the property of [Adolphson & Falk](https://adolphsonfalk.se).
