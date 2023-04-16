@@ -2,11 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
@@ -31,8 +33,11 @@ func initMRPISPlayer() (*mpris.Player, error) {
 	return mpris.New(conn, names[0]), nil
 }
 
-func createUI(player *mpris.Player) (*fyne.Container, error) {
-	icon := canvas.NewImageFromResource(nil)
+func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fyne.Container, error) {
+	artistAndTitle := widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**: %s", artist, title))
+
+	icon := canvas.NewImageFromURI(iconURI)
+	icon.FillMode = canvas.ImageFillContain
 
 	previous := &widget.Button{Icon: theme.MediaSkipPreviousIcon(), OnTapped: func() {
 		err := player.Previous()
@@ -86,7 +91,8 @@ func createUI(player *mpris.Player) (*fyne.Container, error) {
 	width := buttons.MinSize().Width
 	icon.SetMinSize(fyne.NewSize(width, width))
 
-	return container.NewBorder(nil, buttons, nil, nil, icon), nil
+	content := container.NewBorder(nil, container.NewCenter(buttons), nil, nil, icon)
+	return container.NewBorder(artistAndTitle, nil, nil, nil, content), nil
 }
 
 func main() {
@@ -99,7 +105,32 @@ func main() {
 		return
 	}
 
-	contents, err := createUI(player)
+	metadata, err := player.GetMetadata()
+	if err != nil {
+		fyne.LogError("Could not get metdata", err)
+		return
+	}
+
+	statusChanged := make(chan *dbus.Signal)
+	player.OnSignal(statusChanged)
+	go func() {
+		for {
+			status := <-statusChanged
+			fmt.Println(status.Body...)
+		}
+	}()
+
+	iconPath := metadata["mpris:artUrl"].Value().(string)
+	iconURI, err := storage.ParseURI(iconPath)
+	if err != nil {
+		fyne.LogError("Failed to parse artwork url", err)
+		return
+	}
+
+	artist := metadata["xesam:artist"].Value().([]string)[0]
+	title := metadata["xesam:title"].Value().(string)
+
+	contents, err := createUI(player, iconURI, artist, title)
 	if err != nil {
 		fyne.LogError("Could not create user interface", err)
 		return
