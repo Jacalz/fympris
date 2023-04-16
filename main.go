@@ -5,6 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -30,15 +31,8 @@ func initMRPISPlayer() (*mpris.Player, error) {
 	return mpris.New(conn, names[0]), nil
 }
 
-func main() {
-	a := app.New()
-	w := a.NewWindow("MPRIS")
-
-	player, err := initMRPISPlayer()
-	if err != nil {
-		fyne.LogError("Failed to get player", err)
-		return
-	}
+func createUI(player *mpris.Player) (*fyne.Container, error) {
+	icon := canvas.NewImageFromResource(nil)
 
 	previous := &widget.Button{Icon: theme.MediaSkipPreviousIcon(), OnTapped: func() {
 		err := player.Previous()
@@ -49,16 +43,15 @@ func main() {
 
 	status, err := player.GetPlaybackStatus()
 	if err != nil {
-		fyne.LogError("Failed to get playback status", err)
-		return
+		return nil, err
 	}
 
-	icon := theme.MediaPauseIcon()
+	playOrPlauseIcon := theme.MediaPauseIcon()
 	if status == mpris.PlaybackPaused {
-		icon = theme.MediaPlayIcon()
+		playOrPlauseIcon = theme.MediaPlayIcon()
 	}
 
-	playOrPause := &widget.Button{Icon: icon}
+	playOrPause := &widget.Button{Icon: playOrPlauseIcon}
 	playOrPause.OnTapped = func() {
 		err := player.PlayPause()
 		if err != nil {
@@ -88,6 +81,30 @@ func main() {
 		}
 	}}
 
-	w.SetContent(container.NewHBox(previous, playOrPause, next))
+	buttons := container.NewHBox(previous, playOrPause, next)
+
+	width := buttons.MinSize().Width
+	icon.SetMinSize(fyne.NewSize(width, width))
+
+	return container.NewBorder(nil, buttons, nil, nil, icon), nil
+}
+
+func main() {
+	a := app.New()
+	w := a.NewWindow("MPRIS")
+
+	player, err := initMRPISPlayer()
+	if err != nil {
+		fyne.LogError("Failed to get player", err)
+		return
+	}
+
+	contents, err := createUI(player)
+	if err != nil {
+		fyne.LogError("Could not create user interface", err)
+		return
+	}
+
+	w.SetContent(contents)
 	w.ShowAndRun()
 }
