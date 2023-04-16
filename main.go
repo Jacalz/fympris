@@ -111,8 +111,10 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 		}
 	}()
 
-	content := container.NewBorder(nil, container.NewCenter(buttons), nil, nil, icon)
-	return container.NewBorder(artistAndTitle, nil, nil, nil, content), nil
+	centeredButtons := container.NewCenter(buttons)
+	centeredArtistAndTitle := container.NewCenter(artistAndTitle)
+	content := container.NewBorder(nil, centeredButtons, nil, nil, icon)
+	return container.NewBorder(centeredArtistAndTitle, nil, nil, nil, content), nil
 }
 
 func main() {
