@@ -62,22 +62,7 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 		err := player.PlayPause()
 		if err != nil {
 			fyne.LogError("Could not change playback mode", err)
-			return
 		}
-
-		status, err := player.GetPlaybackStatus()
-		if err != nil {
-			fyne.LogError("Failed to get playback status", err)
-			return
-		}
-
-		if status == mpris.PlaybackPaused {
-			playOrPause.Icon = theme.MediaPlayIcon()
-		} else {
-			playOrPause.Icon = theme.MediaPauseIcon()
-		}
-
-		playOrPause.Refresh()
 	}
 
 	next := &widget.Button{Icon: theme.MediaSkipNextIcon(), OnTapped: func() {
@@ -91,6 +76,40 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 
 	width := buttons.MinSize().Width
 	icon.SetMinSize(fyne.NewSize(width, width))
+
+	statusChanged := make(chan *dbus.Signal)
+	player.OnSignal(statusChanged)
+	go func() {
+		for {
+			status := <-statusChanged
+			data := status.Body[1].(map[string]dbus.Variant)
+
+			if val, ok := data["PlaybackStatus"]; ok {
+				status := val.Value().(string)
+				if status == string(mpris.PlaybackPlaying) {
+					playOrPause.Icon = theme.MediaPauseIcon()
+				} else {
+					playOrPause.Icon = theme.MediaPlayIcon()
+				}
+
+				playOrPause.Refresh()
+			}
+
+			if val, ok := data["Metadata"]; ok {
+				metadata := val.Value().(map[string]dbus.Variant)
+
+				artist := strings.Join(metadata["xesam:artist"].Value().([]string), ",")
+				title := metadata["xesam:title"].Value().(string)
+				artistAndTitle.ParseMarkdown(fmt.Sprintf("**%s**: %s", artist, title))
+
+				if val, ok = metadata["mpris:artUrl"]; ok {
+					iconURI := val.Value().(string)
+					icon.File = iconURI[len("file://"):]
+					icon.Refresh()
+				}
+			}
+		}
+	}()
 
 	content := container.NewBorder(nil, container.NewCenter(buttons), nil, nil, icon)
 	return container.NewBorder(artistAndTitle, nil, nil, nil, content), nil
@@ -111,15 +130,6 @@ func main() {
 		fyne.LogError("Could not get metdata", err)
 		return
 	}
-
-	statusChanged := make(chan *dbus.Signal)
-	player.OnSignal(statusChanged)
-	go func() {
-		for {
-			status := <-statusChanged
-			fmt.Println(status.Body...)
-		}
-	}()
 
 	iconPath := metadata["mpris:artUrl"].Value().(string)
 	iconURI, err := storage.ParseURI(iconPath)
