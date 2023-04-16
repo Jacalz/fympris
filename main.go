@@ -117,7 +117,7 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 
 func main() {
 	a := app.New()
-	w := a.NewWindow("MPRIS")
+	w := a.NewWindow("Fympris")
 
 	player, err := initMRPISPlayer()
 	if err != nil {
