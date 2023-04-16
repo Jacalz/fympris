@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	icon := theme.MediaPlayIcon()
+	icon := theme.MediaPauseIcon()
 	if status == mpris.PlaybackPaused {
 		icon = theme.MediaPlayIcon()
 	}
@@ -75,7 +75,7 @@ func main() {
 		if status == mpris.PlaybackPaused {
 			playOrPause.Icon = theme.MediaPlayIcon()
 		} else {
-			playOrPause.Icon = theme.MediaPlayIcon()
+			playOrPause.Icon = theme.MediaPauseIcon()
 		}
 
 		playOrPause.Refresh()
