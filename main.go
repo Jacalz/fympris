@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -127,7 +128,7 @@ func main() {
 		return
 	}
 
-	artist := metadata["xesam:artist"].Value().([]string)[0]
+	artist := strings.Join(metadata["xesam:artist"].Value().([]string), ",")
 	title := metadata["xesam:title"].Value().(string)
 
 	contents, err := createUI(player, iconURI, artist, title)
@@ -137,5 +138,6 @@ func main() {
 	}
 
 	w.SetContent(contents)
+	w.Resize(fyne.NewSize(400, 400))
 	w.ShowAndRun()
 }
