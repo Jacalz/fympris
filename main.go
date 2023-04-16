@@ -118,7 +118,8 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 }
 
 func main() {
-	a := app.New()
+	a := app.NewWithID("io.github.jacalz.fympris")
+	a.SetIcon(theme.MediaMusicIcon())
 	w := a.NewWindow("Fympris")
 
 	player, err := initMRPISPlayer()
