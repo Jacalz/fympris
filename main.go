@@ -52,9 +52,9 @@ func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fy
 		return nil, err
 	}
 
-	playOrPlauseIcon := theme.MediaPauseIcon()
-	if status == mpris.PlaybackPaused {
-		playOrPlauseIcon = theme.MediaPlayIcon()
+	playOrPlauseIcon := theme.MediaPlayIcon()
+	if status == mpris.PlaybackPlaying {
+		playOrPlauseIcon = theme.MediaPauseIcon()
 	}
 
 	playOrPause := &widget.Button{Icon: playOrPlauseIcon}
