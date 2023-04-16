@@ -1,0 +1,27 @@
+# Binaries and tarballs for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.tar.gz
+*.tar.xz
+*.zip
+mpris
+
+# Output from fyne-cross when running cross-compilation.
+fyne-cross/
+*.syso
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Flatpak related information
+build-dir/
+.flatpak-builder
