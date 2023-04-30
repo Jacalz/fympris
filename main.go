@@ -2,16 +2,10 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 
 	"github.com/Pauloo27/go-mpris"
 	"github.com/godbus/dbus/v5"
@@ -34,89 +28,6 @@ func initMRPISPlayer() (*mpris.Player, error) {
 	return mpris.New(conn, names[0]), nil
 }
 
-func createUI(player *mpris.Player, iconURI fyne.URI, artist, title string) (*fyne.Container, error) {
-	artistAndTitle := widget.NewRichTextFromMarkdown(fmt.Sprintf("**%s**: %s", artist, title))
-
-	icon := canvas.NewImageFromURI(iconURI)
-	icon.FillMode = canvas.ImageFillContain
-
-	previous := &widget.Button{Icon: theme.MediaSkipPreviousIcon(), OnTapped: func() {
-		err := player.Previous()
-		if err != nil {
-			fyne.LogError("Could not skip to previous", err)
-		}
-	}}
-
-	status, err := player.GetPlaybackStatus()
-	if err != nil {
-		return nil, err
-	}
-
-	playOrPlauseIcon := theme.MediaPlayIcon()
-	if status == mpris.PlaybackPlaying {
-		playOrPlauseIcon = theme.MediaPauseIcon()
-	}
-
-	playOrPause := &widget.Button{Icon: playOrPlauseIcon}
-	playOrPause.OnTapped = func() {
-		err := player.PlayPause()
-		if err != nil {
-			fyne.LogError("Could not change playback mode", err)
-		}
-	}
-
-	next := &widget.Button{Icon: theme.MediaSkipNextIcon(), OnTapped: func() {
-		err := player.Next()
-		if err != nil {
-			fyne.LogError("Could not skip to next", err)
-		}
-	}}
-
-	buttons := container.NewHBox(previous, playOrPause, next)
-
-	width := buttons.MinSize().Width
-	icon.SetMinSize(fyne.NewSize(width, width))
-
-	statusChanged := make(chan *dbus.Signal)
-	player.OnSignal(statusChanged)
-	go func() {
-		for {
-			status := <-statusChanged
-			data := status.Body[1].(map[string]dbus.Variant)
-
-			if val, ok := data["PlaybackStatus"]; ok {
-				status := val.Value().(string)
-				if status == string(mpris.PlaybackPlaying) {
-					playOrPause.Icon = theme.MediaPauseIcon()
-				} else {
-					playOrPause.Icon = theme.MediaPlayIcon()
-				}
-
-				playOrPause.Refresh()
-			}
-
-			if val, ok := data["Metadata"]; ok {
-				metadata := val.Value().(map[string]dbus.Variant)
-
-				artist := strings.Join(metadata["xesam:artist"].Value().([]string), ",")
-				title := metadata["xesam:title"].Value().(string)
-				artistAndTitle.ParseMarkdown(fmt.Sprintf("**%s**: %s", artist, title))
-
-				if val, ok = metadata["mpris:artUrl"]; ok {
-					iconURI := val.Value().(string)
-					icon.File = iconURI[len("file://"):]
-					icon.Refresh()
-				}
-			}
-		}
-	}()
-
-	centeredButtons := container.NewCenter(buttons)
-	centeredArtistAndTitle := container.NewCenter(artistAndTitle)
-	content := container.NewBorder(nil, centeredButtons, nil, nil, icon)
-	return container.NewBorder(centeredArtistAndTitle, nil, nil, nil, content), nil
-}
-
 func main() {
 	a := app.NewWithID("io.github.jacalz.fympris")
 	a.SetIcon(theme.MediaMusicIcon())
@@ -128,29 +39,9 @@ func main() {
 		return
 	}
 
-	metadata, err := player.GetMetadata()
-	if err != nil {
-		fyne.LogError("Could not get metdata", err)
-		return
-	}
+	controller := newMediaController(player)
+	w.SetContent(controller.createUI())
 
-	iconPath := metadata["mpris:artUrl"].Value().(string)
-	iconURI, err := storage.ParseURI(iconPath)
-	if err != nil {
-		fyne.LogError("Failed to parse artwork url", err)
-		return
-	}
-
-	artist := strings.Join(metadata["xesam:artist"].Value().([]string), ",")
-	title := metadata["xesam:title"].Value().(string)
-
-	contents, err := createUI(player, iconURI, artist, title)
-	if err != nil {
-		fyne.LogError("Could not create user interface", err)
-		return
-	}
-
-	w.SetContent(contents)
 	w.Resize(fyne.NewSize(400, 400))
 	w.ShowAndRun()
 }
